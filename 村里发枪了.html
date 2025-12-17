@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>村里发枪了 - 焚决 (极致精修版)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 字体库: Teko + Noto Sans SC -->
+    <link href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- 核心变量 --- */
+        :root {
+            --val-red: #ff4655;
+            --val-black: #0f1923;
+            --val-dark: #1f2326;
+            --val-gray: #ece8e1;
+            --val-blue: #00bcd4;
+            --val-gold: #ffc107;
+        }
+
+        /* --- 基础设置 --- */
+        body {
+            background-color: var(--val-black);
+            color: var(--val-gray);
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow: hidden;
+            user-select: auto;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        button, .no-select { user-select: none; }
+
+        .font-tactical { 
+            font-family: 'Teko', sans-serif; 
+            text-transform: uppercase; 
+            letter-spacing: 1.5px; 
+        }
+
+        /* 滚动条 */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: #333; border: 1px solid #111; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--val-red); }
+
+        /* --- 组件样式 --- */
+        .val-card {
+            background: rgba(20, 25, 30, 0.95);
+            border: 1px solid rgba(255,255,255,0.1);
+            position: relative;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        /* 战术按钮 */
+        .val-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            font-family: 'Teko', sans-serif;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 1.1rem;
+            padding-top: 4px;
+        }
+        .val-btn:hover { background: var(--val-red); border-color: var(--val-red); box-shadow: 0 0 10px rgba(255, 70, 85, 0.4); }
+        .val-btn:active { transform: scale(0.98); }
+        
+        .val-btn.active { 
+            background: var(--val-red); 
+            border-color: var(--val-red); 
+            color: white; 
+            box-shadow: 0 0 15px rgba(255, 70, 85, 0.6);
+        }
+
+        /* --- 紧凑词条按钮 --- */
+        .prompt-item {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-left: 3px solid transparent; 
+            padding: 6px 24px 6px 10px; /* 右侧留空给星星 */
+            text-align: left;
+            transition: all 0.2s;
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            align-items: center; 
+            min-height: 40px; 
+            font-size: 0.9rem;
+            line-height: 1.2;
+        }
+        .prompt-item:hover {
+            background: rgba(255,255,255,0.08);
+            border-left-color: var(--val-red);
+            transform: translateX(2px);
+        }
+
+        /* --- 收藏星星 --- */
+        .star-btn {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #555;
+            font-size: 12px;
+            padding: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            opacity: 0.3;
+            z-index: 5;
+        }
+        .prompt-item:hover .star-btn { opacity: 1; }
+        .star-btn:hover { transform: translateY(-50%) scale(1.3); color: var(--val-gold); }
+        
+        .prompt-item.is-fav .star-btn { color: var(--val-gold); opacity: 1; }
+        .prompt-item.is-fav { border-left-color: var(--val-gold); background: rgba(255, 193, 7, 0.05); }
+
+        /* --- 管理模式 --- */
+        .delete-btn-item, .edit-btn-item, .delete-btn-group { display: none; }
+
+        body.manage-mode .prompt-item {
+            border: 1px dashed rgba(255, 70, 85, 0.6);
+            background: rgba(255, 70, 85, 0.05);
+            cursor: default; 
+        }
+        body.manage-mode .star-btn { display: none; }
+        
+        body.manage-mode .delete-btn-item {
+            display: flex;
+            position: absolute;
+            top: -6px; right: -6px;
+            width: 18px; height: 18px;
+            background: var(--val-red);
+            color: white;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            z-index: 20;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.8);
+            cursor: pointer;
+            border: 1px solid #fff;
+            transition: transform 0.2s;
+        }
+        body.manage-mode .delete-btn-item:hover { transform: scale(1.2); background: #d00000; }
+
+        body.manage-mode .edit-btn-item {
+            display: flex;
+            position: absolute;
+            top: -6px; right: 14px; 
+            width: 18px; height: 18px;
+            background: var(--val-blue);
+            color: white;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            z-index: 19;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.8);
+            cursor: pointer;
+            border: 1px solid #fff;
+            transition: transform 0.2s;
+        }
+        body.manage-mode .edit-btn-item:hover { transform: scale(1.2); background: #0097a7; }
+
+        body.manage-mode .delete-btn-group {
+            display: inline-flex;
+            margin-left: 10px;
+            background: #9b0000;
+            color: white;
+            padding: 2px 6px;
+            font-size: 11px;
+            border-radius: 3px;
+            cursor: pointer;
+            vertical-align: middle;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        body.manage-mode .delete-btn-group:hover { background: #ff0000; }
+
+        /* --- 输入框 --- */
+        textarea {
+            resize: none;
+            outline: none;
+            caret-color: var(--val-red); 
+            z-index: 10;
+        }
+
+        /* 弹窗动画 */
+        .modal { transition: opacity 0.2s; opacity: 0; pointer-events: none; }
+        .modal.show { opacity: 1; pointer-events: auto; }
+        .modal-content { transform: scale(0.95); transition: 0.2s; }
+        .modal.show .modal-content { transform: scale(1); }
+
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- 顶部导航 -->
+    <nav class="h-14 bg-[#0f1923] border-b border-white/10 flex items-center justify-between px-6 shrink-0 shadow-lg z-50 select-none">
+        <div class="flex items-center gap-4">
+            <div class="w-8 h-8 bg-[#ff4655] flex items-center justify-center transform -skew-x-12 shadow-[0_0_15px_#ff4655]">
+                <i class="fa-solid fa-layer-group text-white text-sm transform skew-x-12"></i>
+            </div>
+            <div>
+                <h1 class="font-tactical text-2xl text-white leading-none tracking-widest">村里发枪了</h1>
+                <p class="text-[10px] text-gray-400 font-bold tracking-widest font-tactical">PRO RETOUCH PROTOCOL</p>
+            </div>
+        </div>
+
+        <div class="flex gap-3">
+            <button id="manageBtn" onclick="app.toggleManageMode()" class="val-btn px-3 py-1 text-base border-red-500/50 hover:border-red-500 hover:text-red-500 transition-colors">
+                <i class="fa-solid fa-gear"></i> 管理
+            </button>
+            
+            <div class="w-px h-6 bg-white/10 mx-1"></div>
+
+            <button onclick="app.openModal('add')" class="val-btn px-3 py-1 text-base font-bold"><i class="fa-solid fa-plus text-[#ff4655]"></i> 新增</button>
+            <button onclick="app.exportData()" class="val-btn px-3 py-1 text-base" title="导出备份"><i class="fa-solid fa-download"></i></button>
+            <label class="val-btn px-3 py-1 text-base" title="导入备份">
+                <i class="fa-solid fa-file-import"></i>
+                <input type="file" class="hidden" onchange="app.importData(this)" accept=".json">
+            </label>
+        </div>
+    </nav>
+
+    <!-- 主界面 -->
+    <main class="flex-grow flex p-4 gap-6 overflow-hidden max-w-[1920px] mx-auto w-full">
+        
+        <!-- 左侧：焚决 (输入台) -->
+        <aside class="w-[450px] flex flex-col gap-0 shrink-0 shadow-2xl bg-[#0f1923] z-40 relative">
+            <!-- 标题栏 -->
+            <div class="bg-[#1f2326] p-3 border border-white/10 border-b-0 flex justify-between items-center select-none">
+                <span class="font-tactical text-2xl text-white tracking-wide"><i class="fa-solid fa-fire mr-2 text-[#ff4655]"></i>焚决终端</span>
+                <button onclick="app.clearPrompt()" class="text-gray-500 hover:text-[#ff4655] transition-colors text-sm font-bold font-tactical tracking-wider">
+                    <i class="fa-solid fa-trash-can"></i> CLEAR
+                </button>
+            </div>
+
+            <!-- 输入框区域 -->
+            <div class="flex-grow relative border border-white/10 bg-[#0f1923] group">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-[#ff4655] shadow-[0_0_10px_#ff4655] opacity-50 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                <textarea id="promptArea" class="w-full h-full bg-transparent text-gray-100 p-4 pl-6 font-mono text-sm leading-relaxed resize-none outline-none placeholder-gray-600 focus:bg-[#131b24] transition-colors" placeholder="// 焚决已启动... 等待注入提示词"></textarea>
+            </div>
+
+            <!-- 底部控制栏 -->
+            <div class="bg-[#1f2326] p-3 border border-white/10 border-t-0 flex flex-col gap-3 select-none">
+                
+                <div class="flex justify-between items-center">
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <div class="relative w-8 h-4 bg-gray-700 rounded-full transition-colors peer-checked:bg-[#ff4655]">
+                            <input type="checkbox" id="newlineToggle" class="peer sr-only">
+                            <div class="absolute left-1 top-1 w-2 h-2 bg-white rounded-full transition-transform peer-checked:translate-x-4"></div>
+                        </div>
+                        <span class="font-tactical text-lg text-gray-300">换行模式</span>
+                    </label>
+                    <span id="charCount" class="font-mono text-base text-[#ff4655] font-tactical">0 CHARS</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="app.copyPrompt()" class="val-btn py-2 text-lg font-bold bg-[#ff4655] border-[#ff4655] text-white hover:bg-[#d43030] shadow-lg">
+                        <i class="fa-solid fa-copy"></i> 复制指令
+                    </button>
+                    <button onclick="app.softBackspace()" class="val-btn py-2 text-lg font-bold" title="软退格">
+                        <i class="fa-solid fa-delete-left"></i> 退格
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 右侧：军火库列表 -->
+        <section class="flex-grow flex flex-col min-w-0 val-card overflow-hidden z-30">
+            <!-- 工具栏 -->
+            <div class="p-4 border-b border-white/10 bg-[#1f2326] flex items-center justify-between shrink-0 select-none">
+                <div class="flex items-center gap-4 flex-grow">
+                    <i class="fa-solid fa-search text-gray-500 text-lg"></i>
+                    <input type="text" id="searchInput" oninput="app.renderLibrary(this.value)" placeholder="搜索战术词条..." class="bg-transparent border-none text-white outline-none w-full font-bold text-lg placeholder-gray-600 font-tactical tracking-wide">
+                </div>
+                <div id="manageStatus" class="hidden text-[#ff4655] font-tactical text-lg animate-pulse flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation"></i> 管理模式已激活
+                </div>
+            </div>
+
+            <!-- 列表容器 -->
+            <div id="libraryContainer" class="flex-grow overflow-y-auto p-5 space-y-6 pb-20 custom-scrollbar">
+                <!-- 动态内容 -->
+            </div>
+        </section>
+    </main>
+
+    <!-- 弹窗 (新增/修改) -->
+    <div id="modal" class="modal fixed inset-0 z-[100] flex items-center justify-center bg-black/80">
+        <div class="modal-content val-card w-full max-w-lg p-8 border-t-4 border-t-[#ff4655]">
+            <h2 id="modalTitle" class="font-tactical text-3xl text-white mb-6">新增情报</h2>
+            <form onsubmit="app.handleFormSubmit(event)" class="space-y-5">
+                <input type="hidden" id="editIndex" value="">
+
+                <div>
+                    <label class="block text-[#ff4655] mb-1 font-bold text-lg font-tactical">所属分类</label>
+                    <select id="categorySelect" class="w-full bg-[#0f1923] border border-white/20 text-white p-2 outline-none focus:border-[#ff4655] text-base" onchange="app.toggleCategoryInput()"></select>
+                    <input type="text" id="newCategoryInput" placeholder="输入新分类名称" class="w-full bg-[#0f1923] border border-[#ff4655] text-white p-2 mt-2 hidden outline-none">
+                </div>
+                <div>
+                    <label class="block text-gray-400 mb-1 font-bold text-lg font-tactical">标题 (Label)</label>
+                    <input type="text" name="label" id="inputLabel" required class="w-full bg-[#0f1923] border border-white/20 text-white p-2 outline-none focus:border-[#ff4655]">
+                </div>
+                <div>
+                    <label class="block text-gray-400 mb-1 font-bold text-lg font-tactical">内容 (Value)</label>
+                    <textarea name="value" id="inputValue" required rows="4" class="w-full bg-[#0f1923] border border-white/20 text-white p-2 outline-none focus:border-[#ff4655] resize-none"></textarea>
+                </div>
+                <div class="flex gap-4 pt-4">
+                    <button type="button" onclick="app.closeModal()" class="val-btn flex-1 py-3 text-lg">取消</button>
+                    <button type="submit" class="val-btn flex-1 py-3 text-lg bg-[#ff4655] border-[#ff4655]">确认</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-12 left-1/2 -translate-x-1/2 bg-[#ff4655] text-white px-8 py-2 font-tactical text-xl shadow-[0_0_20px_rgba(255,70,85,0.6)] flex items-center gap-3 transition-all duration-300 translate-y-24 opacity-0 z-[200] border-2 border-white pointer-events-none">
+        <i class="fa-solid fa-check"></i> <span id="toastMsg">OK</span>
+    </div>
+
+    <script>
+        const App = {
+            storageKey: 'village_fenjue_v16_ultimate',
+            data: [],
+            isManageMode: false,
+            editTarget: null, 
+
+            // --- 核心数据 (完整中文版) ---
+            defaultData: [
+                {
+                    "name": "🍌 banana2增强",
+                    "keywords": [
+                        { "label": "一键超清✨", "value": "一键超清✨，整体清晰度提升，细节更锐利但不假，不涂抹。" },
+                        { "label": "高清放大", "value": "高清放大，高清放大，保持原构图与细节比例不变，边缘不糊不虚。" },
+                        { "label": "质感增强", "value": "质感增强，材质质感增强：表面微纹理、真实反射与粗糙度层次。" },
+                        { "label": "细节强化", "value": "细节强化，细节强化：针脚/织纹/毛孔/细小磨损更清楚，细节真实不过度锐化。" },
+                        { "label": "超写实", "value": "超写实，超写实、照片级真实，去除3D模型感与塑料感。" },
+                        { "label": "照片级精度", "value": "照片级精度，照片级精度，真实镜头成像质感，细节自然不过分“渲染感”。" },
+                        { "label": "降噪保细节", "value": "降噪保细节，降噪但保留纹理细节；不要磨皮，不要涂抹感。" },
+                        { "label": "HDR细节", "value": "HDR细节，HDR细节：暗部有层次不过黑，高光不过曝，质感更饱满。" },
+                        { "label": "微纹理", "value": "微纹理，增加微纹理：织物纹理、皮革纹理、橡胶微颗粒、金属拉丝。" },
+                        { "label": "真实皮肤", "value": "真实皮肤，真实皮肤：毛孔、皮脂微反光、细小绒毛与肤色层次自然。" },
+                        { "label": "干净边缘", "value": "干净边缘，边缘干净利落，轮廓不糊不毛边，不产生锯齿或涂抹。" }
+                    ]
+                },
+                {
+                    "name": "🔧 组合技",
+                    "keywords": [
+                        { "label": "锁人+换背景", "value": "锁人不变 + 换背景。只替换背景；人物外观/动作/服装/道具/打光/颜色全部不变；背景与人物透视一致，不割裂。" },
+                        { "label": "锁人+换氛围", "value": "锁人不变 + 换氛围（只改调性不改物体），人物完全不变；只调整整体氛围与环境质感；保持原有构图与光比；不要改变任何道具形状。" },
+                        { "label": "只改动作", "value": "只改动作（不新增道具），只替换动作与姿态；不新增道具；不改变人物脸/发型/服装细节；保持原画风与打光。" },
+                        { "label": "只改材质", "value": "只改材质质感（颜色打光不动），保持颜色与打光不变；只提升材质与质感细节（织物纹理/针脚/微褶皱/磨损）；不改造型。" },
+                        { "label": "替换道具", "value": "替换道具（不改动作），保持人物动作与表情不变；仅把手持物替换为【高级硬壳文件夹/医院病例板+病例纸】；不新增其他道具。" },
+                        { "label": "修透视", "value": "修透视（背景别夸张），修正背景透视：中焦视角，轻透视；不要广角夸张纵深；背景比例与人物一致，空间真实。" }
+                    ]
+                },
+                // === V16 新增：✨ 极致精修与特效 ===
+                {
+                    "name": "✨ 极致精修与特效",
+                    "keywords": [
+                        { "label": "光滑皮肤", "value": "皮肤光滑细腻，去除面部瑕疵，保留自然纹理，磨皮效果自然，不要过于塑料感。" },
+                        { "label": "湿身诱惑", "value": "全身湿透，水珠流淌，皮肤湿润，衣服紧贴皮肤，半透明湿润感，性感湿身。" },
+                        { "label": "油脂高光", "value": "皮肤带有微油脂反光，T区高光增强，模拟真实出汗或油性皮肤质感，增加立体感。" },
+                        { "label": "老态龙钟", "value": "老人皮肤质感，满脸皱纹，老年斑，皮肤松弛下垂，岁月沧桑感，细节丰富。" },
+                        { "label": "战损受伤", "value": "身体受伤，皮肤破损，淤青红肿，流血效果，战损状态，伤口细节真实。" },
+                        { "label": "刀疤印记", "value": "明显的刀疤，旧伤痕，缝合线痕迹，贯穿性伤口，面部疤痕，增加故事感。" },
+                        { "label": "增加脏迹", "value": "面部和身体增加泥土灰尘，污垢痕迹，废土风脏迹，不修边幅，真实劳作感。" },
+                        { "label": "表面划痕", "value": "物体表面增加细微划痕，磨损旧化，破损痕迹，金属刮痕，非全新质感。" },
+                        { "label": "强烈反光", "value": "增强表面反光，高光溢出，油亮湿润，强对比度光泽，材质高光增强。" },
+                        { "label": "暴雨淋湿", "value": "倾盆大雨，雨水冲刷，镜头有水珠，环境潮湿，水花飞溅，淋雨效果。" }
+                    ]
+                },
+                // === V15 新增：🔥 进阶控制与场景 ===
+                {
+                    "name": "🔥 进阶控制与场景",
+                    "keywords": [
+                        { "label": "锁定打光", "value": "保持原有打光方向和色温，光影一致，不要改变光源，维持原图光感。" },
+                        { "label": "锁定动作", "value": "保持人物原有姿态和动作，不要改变手势，不要改变身体朝向，动作一致。" },
+                        { "label": "锁定氛围", "value": "保持原图整体氛围和色调，风格一致，不要改变画面情绪，维持基调。" },
+                        { "label": "提高细节", "value": "极高细节，背景丰富，纹理清晰，环境复杂，增加画面信息量。" },
+                        { "label": "墙上掉皮", "value": "墙面油漆剥落，裂纹，陈旧墙壁，斑驳痕迹，老旧质感。" },
+                        { "label": "墙上有弹痕", "value": "墙壁上有弹孔，战斗痕迹，破损墙面，枪战现场，破坏感。" },
+                        { "label": "墙上有水渍", "value": "墙壁渗水，水痕，潮湿霉斑，漏水痕迹，陈旧污渍。" },
+                        { "label": "墙上有苔藓", "value": "墙角青苔，绿色植物附着，潮湿环境，自然生长，废墟感。" },
+                        { "label": "转为女性", "value": "女性特征，长发，柔和面部线条，女性身体结构，变成女生。" },
+                        { "label": "转为男性", "value": "男性特征，短发，硬朗面部线条，男性身体结构，变成男生。" },
+                        { "label": "枪口开火", "value": "枪口火焰，火光四溅，射击瞬间，动态模糊，战斗激烈。" },
+                        { "label": "动态模糊", "value": "运动模糊，速度线，画面动感，非静止状态，抓拍瞬间。" },
+                        { "label": "环境烟雾", "value": "场景充满烟雾，迷雾缭绕，空气浑浊，大气透视，神秘感。" },
+                        { "label": "环绕烟雾", "value": "人物周围有烟雾环绕，灵气，魔法气息，朦胧感。" },
+                        { "label": "眼神犀利", "value": "眼神锐利，目光如炬，凶狠，坚定，杀气腾腾。" },
+                        { "label": "眼神温柔", "value": "眼神柔和，充满爱意，温暖，亲切，含情脉脉。" },
+                        { "label": "眼神空洞", "value": "双眼无神，失去焦距，呆滞，无灵魂，行尸走肉。" }
+                    ]
+                },
+                {
+                    "name": "🎬 摄影与预设",
+                    "keywords": [
+                        { "label": "暗区突围氛围", "value": "冷色“暗区突围 / 逃离塔科夫”氛围，冷色、低饱和、硬朗写实氛围，紧张克制；金属与混凝土质感清晰，空气微尘，电影级真实。" },
+                        { "label": "电影级超写实", "value": "电影级超写实，电影级超写实，照片级精度；真实皮肤与毛发；材质真实可触；无CG塑料感。" },
+                        { "label": "2/3构图", "value": "2/3身体固定构图（你最常用），2/3身体构图：从头顶到大腿中段；画面下沿切在大腿中部；不要全身，不要脚。" },
+                        { "label": "电影级布光", "value": "电影级布光（但别改原打光时用），电影级布光：主光+柔和补光+轮廓光；对比克制，层次清晰；皮肤与织物质感被照亮。" },
+                        { "label": "保持原光色", "value": "保持原图打光与颜色不变，保持原图打光与颜色完全不变；只做细节与材质提升；不改变光比与色温。" },
+                        { "label": "镜头质感", "value": "镜头质感（去渲染味），真实镜头成像：轻微景深、自然锐度与微颗粒；避免CG渲染质感。" }
+                    ]
+                },
+                {
+                    "name": "🔄 替换类",
+                    "keywords": [
+                        { "label": "换脸型/轮廓", "value": "只换脸型/头部轮廓，以图1为主图，保持图1的写实质感、打光、颜色、相机视角、构图、动作完全不变。仅将“脸型边缘/下颌线/颧骨转折/头部轮廓”调整为图2的特征；保持图1的皮肤毛孔与真实质感不变，不要变成塑料感。不改变发型长度与走向，不改变表情强度，不新增道具，不改变背景。" },
+                        { "label": "换眼睛", "value": "只换眼睛，保持图1人物整体不变：材质、打光、颜色、脸部细节、发丝细节不变。仅将“眼球大小、虹膜颜色、眼白比例、眼裂形状、眼神方向”匹配图2；眼神，自然真实，不夸张。不改变其他五官比例；不改变镜片反光与光源方向；不新增妆容。" },
+                        { "label": "换动作", "value": "只换动作，保持图1人物外观、服装、材质、颜色、打光、背景完全不变。仅将“肢体动作/手臂角度/手势/肩颈姿态”替换为图2的动作；动作自然、写实、四肢比例正确。不新增任何道具；不改变镜头焦段与视角；不改变表情年龄。" },
+                        { "label": "换背景", "value": "只换背景，保持图1人物100%不变（脸、头发、衣服、动作、材质、颜色、打光全部锁定）。将背景替换为图2背景的医院环境风格；背景写实、比例正确、透视弱（中长焦感），与人物透视一致；人物与背景接触光、环境反射、边缘遮罩自然融合，不割裂。禁止广角、禁止夸张纵深、禁止地面透视过大；不改变图1主光方向与色温。" },
+                        { "label": "换氛围/色调", "value": "只换氛围/色调，以图2为主图，保持图2的打光结构与曝光不变。仅将整体氛围替换为图1的冷色、压抑、暗区突围/逃离塔科夫式调性：偏冷青蓝、对比更凝、空气微雾、金属与墙面更“湿冷”。不改变图2人物与背景结构，不改变透视与构图，不新增灯具或道具。" }
+                    ]
+                },
+                {
+                    "name": "🧶 材质增强",
+                    "keywords": [
+                        { "label": "皮肤超写实", "value": "皮肤超写实（毛孔/汗毛/SSS），保持颜色与打光不变，只提升皮肤照片级真实：可见毛孔、细小汗毛(桃绒)、真实皮脂高光、微血色不均、轻微瑕疵与肤理起伏；自然次表面散射(SSS)，不要磨皮、不要蜡像感、不要塑料感。" },
+                        { "label": "头发超写实", "value": "头发超写实，保持发型轮廓不变，只提升头发真实度：清晰发丝束、粗细变化、发根密度与头皮阴影、细碎飞发、轻微毛躁与静电；真实各向异性高光，不要成片塑料亮带，不要糊成团。" },
+                        { "label": "布料超写实", "value": "布料超写实，保持颜色打光不变，只提升布料真实：可见细密织纹/斜纹纹理、线迹与压线、缝边与翻折厚度正确；褶皱遵循重力与拉扯，褶皱边缘柔和过渡；加入轻微磨毛、起球与使用痕迹，避免“硬雕刻褶皱/模型感”。" },
+                        { "label": "皮革超写实", "value": "皮革超写实，保持颜色不变，只提升皮革真实：细腻皮纹毛孔、拉伸处发亮、压痕与折线、边缘轻微磨损与起皮；缝线与走线真实，皮面微反光但不过曝，不要橡胶感、不规则纹理更自然。" },
+                        { "label": "金属超写实", "value": "金属超写实，保持颜色打光不变，只提升金属PBR真实：微拉丝/喷砂粗糙度变化、细小划痕、边角高光、指纹油污、轻微磨损；高光锐利但不过度镜面，不要像塑料喷漆。" },
+                        { "label": "乳胶/胶手套", "value": "胶/乳胶手套超写实，保持手套颜色不变，只增强胶制/乳胶质感：紧绷拉伸的细褶、关节处真实压痕、局部高光更集中、轻微粉感/摩擦雾面区、手指形变真实；不要“皮手套纹理”、不要过度均匀的亮面。" },
+                        { "label": "尼龙织带", "value": "尼龙织带/腰带超写实，保持颜色不变，只增强尼龙织带真实：可见织带编织纹理、缝线加固、边缘包边与轻微毛边；受力处微拉伸与压痕；扣具处磨损与反光真实，不要像光滑塑料带。" },
+                        { "label": "丝袜超写实", "value": "尼龙丝袜/连裤袜超写实，保持颜色打光不变，只提升丝袜真实：细微编织网格与轻薄透肤、受力处微反光、膝/大腿处轻微拉伸变化；避免重复花纹与摩尔纹；不要“硬涂黑”、不要塑料亮膜感。" },
+                        { "label": "消除模型感", "value": "消除模型感褶皱，褶皱必须像真实照片：软、随机、不规则、边缘有柔和过渡；避免硬边雕刻感、避免对称规律、避免过度锐化与均匀噪点；加入真实使用压痕与面料疲劳感。" }
+                    ]
+                }
+            ],
+
+            init() {
+                this.loadData();
+                this.renderLibrary();
+                this.updateCharCount();
+            },
+
+            loadData() {
+                const stored = localStorage.getItem(this.storageKey);
+                try {
+                    this.data = stored ? JSON.parse(stored) : JSON.parse(JSON.stringify(this.defaultData));
+                    this.data.forEach(group => {
+                        group.keywords.forEach(kw => {
+                            if (kw.usage === undefined) kw.usage = 0;
+                            if (kw.favorite === undefined) kw.favorite = false;
+                        });
+                    });
+                } catch(e) {
+                    this.data = JSON.parse(JSON.stringify(this.defaultData));
+                }
+            },
+
+            saveData() {
+                localStorage.setItem(this.storageKey, JSON.stringify(this.data));
+            },
+
+            renderLibrary(filter = "") {
+                const container = document.getElementById('libraryContainer');
+                container.innerHTML = "";
+                const lowerFilter = filter.toLowerCase().trim();
+
+                const favKeywords = [];
+                this.data.forEach(g => {
+                    g.keywords.forEach(k => {
+                        if (k.favorite) favKeywords.push({...k});
+                    });
+                });
+
+                if (favKeywords.length > 0 && !lowerFilter) {
+                    this.renderGroup({name: "⭐ 常用/收藏", keywords: favKeywords}, -1, container, true);
+                }
+
+                this.data.forEach((group, gIndex) => {
+                    const filteredKws = group.keywords.filter(k => 
+                        k.label.toLowerCase().includes(lowerFilter) || 
+                        k.value.toLowerCase().includes(lowerFilter)
+                    );
+                    
+                    if (filteredKws.length === 0 && !group.name.toLowerCase().includes(lowerFilter)) return;
+                    
+                    this.renderGroup({name: group.name, keywords: filteredKws}, gIndex, container, false);
+                });
+            },
+
+            renderGroup(group, gIndex, container, isFavGroup) {
+                const section = document.createElement('div');
+                section.className = "mb-8 animate-fade-in"; 
+                
+                const header = document.createElement('h3');
+                header.className = `font-tactical text-2xl mb-4 border-b border-[#333] pb-2 flex items-center ${isFavGroup ? 'text-[#ffc107]' : 'text-gray-300'}`;
+                header.innerHTML = `
+                    <i class="fa-solid ${isFavGroup ? 'fa-star' : 'fa-layer-group text-red-500'} mr-2"></i> ${group.name} 
+                    <span class="ml-auto text-sm bg-[#333] px-2 py-1 text-gray-500 rounded font-mono">${group.keywords.length}</span>
+                    ${!isFavGroup ? `<div class="delete-btn-group" onclick="app.deleteGroup(${gIndex}, '${group.name}')"><i class="fa-solid fa-trash mr-1"></i> 删除</div>` : ''}
+                `;
+                section.appendChild(header);
+
+                const grid = document.createElement('div');
+                grid.className = "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2";
+
+                group.keywords.forEach(kw => {
+                    let realGIndex = gIndex;
+                    let realKIndex = -1;
+
+                    if(isFavGroup) {
+                        for(let i=0; i<this.data.length; i++) {
+                            const found = this.data[i].keywords.findIndex(k => k.label === kw.label && k.value === kw.value);
+                            if(found !== -1) {
+                                realGIndex = i;
+                                realKIndex = found;
+                                break;
+                            }
+                        }
+                    } else {
+                        realKIndex = this.data[gIndex].keywords.indexOf(kw);
+                    }
+
+                    const btnContainer = document.createElement('div');
+                    btnContainer.className = `prompt-item group relative ${kw.favorite ? 'is-fav' : ''}`; 
+                    btnContainer.title = kw.value;
+
+                    btnContainer.innerHTML = `
+                        <div class="delete-btn-item" onclick="app.deleteItem(event, ${realGIndex}, ${realKIndex}, '${kw.label}')">
+                            <i class="fa-solid fa-xmark"></i>
+                        </div>
+                        <div class="edit-btn-item" onclick="app.openModal('edit', ${realGIndex}, ${realKIndex})">
+                            <i class="fa-solid fa-pen"></i>
+                        </div>
+                        <div class="star-btn" onclick="app.toggleFavorite(event, ${realGIndex}, ${realKIndex})">
+                            <i class="fa-${kw.favorite ? 'solid' : 'regular'} fa-star"></i>
+                        </div>
+                        <span class="font-bold text-gray-200 group-hover:text-white truncate w-full text-center pr-4">${kw.label}</span>
+                    `;
+
+                    btnContainer.onclick = (e) => {
+                        if (e.target.closest('.delete-btn-item') || e.target.closest('.edit-btn-item') || e.target.closest('.star-btn')) return;
+                        if(!this.isManageMode) this.addToPrompt(kw.value, btnContainer, realGIndex, realKIndex);
+                    };
+
+                    grid.appendChild(btnContainer);
+                });
+
+                section.appendChild(grid);
+                container.appendChild(section);
+            },
+
+            addToPrompt(val, btn, gIndex, kIndex) {
+                const area = document.getElementById('promptArea');
+                const useNewline = document.getElementById('newlineToggle').checked;
+                const sep = useNewline ? '\n' : '，'; 
+                
+                let current = area.value;
+                if (current && !/[，,\n]$/.test(current.trim())) {
+                    current += sep;
+                }
+                
+                area.value = current + val;
+                area.scrollTop = area.scrollHeight;
+                this.updateCharCount();
+
+                btn.style.backgroundColor = '#d32f2f';
+                setTimeout(() => btn.style.backgroundColor = '', 200);
+
+                if (gIndex !== undefined && kIndex !== undefined) {
+                    const item = this.data[gIndex].keywords[kIndex];
+                    item.usage = (item.usage || 0) + 1;
+                    
+                    if (item.usage >= 5 && !item.favorite) {
+                        item.favorite = true;
+                        this.toast(`"${item.label}" 已自动加入常用！`);
+                    }
+                    this.saveData();
+                    if (item.usage === 5) this.renderLibrary(); 
+                }
+            },
+
+            toggleFavorite(e, gIndex, kIndex) {
+                e.stopPropagation();
+                const item = this.data[gIndex].keywords[kIndex];
+                item.favorite = !item.favorite;
+                if (!item.favorite) item.usage = 0;
+                
+                this.saveData();
+                this.renderLibrary();
+                this.toast(item.favorite ? "已收藏" : "已取消收藏");
+            },
+
+            toggleManageMode() {
+                this.isManageMode = !this.isManageMode;
+                const body = document.body;
+                const btn = document.getElementById('manageBtn');
+                const status = document.getElementById('manageStatus');
+                
+                if (this.isManageMode) {
+                    body.classList.add('manage-mode');
+                    btn.classList.add('active');
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> 完成';
+                    btn.style.borderColor = "#ff5252";
+                    btn.style.color = "#ff5252";
+                    status.classList.remove('hidden');
+                    this.toast("管理模式：修改或删除");
+                } else {
+                    body.classList.remove('manage-mode');
+                    btn.classList.remove('active');
+                    btn.innerHTML = '<i class="fa-solid fa-gear"></i> 管理';
+                    btn.style.borderColor = "";
+                    btn.style.color = "";
+                    status.classList.add('hidden');
+                    this.toast("已退出管理模式");
+                }
+            },
+
+            deleteItem(e, gIndex, kIndex, label) {
+                e.stopPropagation();
+                if(confirm(`确定删除【${label}】？`)) {
+                    this.data[gIndex].keywords.splice(kIndex, 1);
+                    this.saveData();
+                    this.renderLibrary();
+                    this.toast("已删除");
+                }
+            },
+
+            deleteGroup(gIndex, name) {
+                if(confirm(`⚠️ 确定删除整个【${name}】分类吗？`)) {
+                    this.data.splice(gIndex, 1);
+                    this.saveData();
+                    this.renderLibrary();
+                    this.toast("分类已删除");
+                }
+            },
+
+            softBackspace() {
+                const area = document.getElementById('promptArea');
+                const start = area.selectionStart;
+                const end = area.selectionEnd;
+                const val = area.value;
+                if (start === end && start > 0) {
+                    area.value = val.slice(0, start - 1) + val.slice(end);
+                    area.selectionStart = area.selectionEnd = start - 1;
+                } else {
+                    area.value = val.slice(0, start) + val.slice(end);
+                    area.selectionStart = area.selectionEnd = start;
+                }
+                area.focus();
+                this.updateCharCount();
+            },
+
+            updateCharCount() {
+                document.getElementById('charCount').textContent = document.getElementById('promptArea').value.length + " 字";
+            },
+
+            clearPrompt() {
+                if(confirm("确定清空焚决？")) {
+                    document.getElementById('promptArea').value = "";
+                    this.updateCharCount();
+                    this.toast("已清空");
+                }
+            },
+
+            async copyPrompt() {
+                const text = document.getElementById('promptArea').value;
+                if(!text) return this.toast("空空如也");
+                try {
+                    await navigator.clipboard.writeText(text);
+                    this.toast("复制成功");
+                } catch (e) {
+                    const t = document.createElement('textarea');
+                    t.value = text;
+                    document.body.appendChild(t);
+                    t.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(t);
+                    this.toast("复制成功");
+                }
+            },
+
+            openModal(mode, gIndex = null, kIndex = null) {
+                const modal = document.getElementById('modal');
+                const select = document.getElementById('categorySelect');
+                const title = document.getElementById('modalTitle');
+                const labelInput = document.getElementById('inputLabel');
+                const valueInput = document.getElementById('inputValue');
+                const newCatInput = document.getElementById('newCategoryInput');
+                
+                modal.classList.add('show');
+                select.innerHTML = '<option value="new">+ 新建分类...</option>';
+                this.data.forEach(g => {
+                    const opt = document.createElement('option');
+                    opt.value = g.name;
+                    opt.textContent = g.name;
+                    select.appendChild(opt);
+                });
+                newCatInput.classList.add('hidden');
+                
+                if (mode === 'edit' && gIndex !== null && kIndex !== null) {
+                    this.editTarget = { gIndex, kIndex };
+                    title.textContent = "修改情报";
+                    const item = this.data[gIndex].keywords[kIndex];
+                    const groupName = this.data[gIndex].name;
+                    select.value = groupName;
+                    labelInput.value = item.label;
+                    valueInput.value = item.value;
+                    select.disabled = true; 
+                } else {
+                    this.editTarget = null;
+                    title.textContent = "新增情报";
+                    labelInput.value = "";
+                    valueInput.value = "";
+                    select.disabled = false;
+                    if(this.data.length > 0) select.selectedIndex = 1;
+                    else select.selectedIndex = 0;
+                }
+            },
+
+            closeModal() {
+                document.getElementById('modal').classList.remove('show');
+                document.querySelector('form').reset();
+                this.editTarget = null;
+            },
+
+            toggleCategoryInput() {
+                const val = document.getElementById('categorySelect').value;
+                const input = document.getElementById('newCategoryInput');
+                if(val === 'new') {
+                    input.classList.remove('hidden');
+                    input.focus();
+                } else {
+                    input.classList.add('hidden');
+                }
+            },
+
+            handleFormSubmit(e) {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const label = formData.get('label').trim();
+                const value = formData.get('value').trim();
+                
+                if (this.editTarget) {
+                    const { gIndex, kIndex } = this.editTarget;
+                    const item = this.data[gIndex].keywords[kIndex];
+                    item.label = label;
+                    item.value = value;
+                    this.toast("修改已保存");
+                } else {
+                    let cat = document.getElementById('categorySelect').value;
+                    if(cat === 'new') cat = document.getElementById('newCategoryInput').value.trim();
+                    if(!cat) return alert("分类不能为空");
+
+                    let group = this.data.find(g => g.name === cat);
+                    if (!group) {
+                        group = { name: cat, keywords: [] };
+                        this.data.push(group);
+                    }
+                    group.keywords.push({ label, value, favorite: false, usage: 0 });
+                    this.toast(`已添加：${label}`);
+                }
+
+                this.saveData();
+                this.renderLibrary();
+                this.closeModal();
+            },
+
+            exportData() {
+                const blob = new Blob([JSON.stringify(this.data, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `fenjue_arsenal_${new Date().toISOString().slice(0,10)}.json`;
+                a.click();
+            },
+
+            importData(input) {
+                const file = input.files[0];
+                if(!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const json = JSON.parse(e.target.result);
+                        if(Array.isArray(json)) {
+                            if(confirm("导入将覆盖当前数据，确定？")) {
+                                this.data = json;
+                                this.saveData();
+                                this.renderLibrary();
+                                this.toast("数据已恢复");
+                            }
+                        }
+                    } catch(e) { alert("文件格式错误"); }
+                    input.value = '';
+                };
+                reader.readAsText(file);
+            },
+
+            toast(msg) {
+                const t = document.getElementById('toast');
+                document.getElementById('toastMsg').textContent = msg;
+                t.classList.remove('opacity-0', 'translate-y-24');
+                setTimeout(() => t.classList.add('opacity-0', 'translate-y-24'), 2000);
+            }
+        };
+
+        window.app = App;
+        window.onload = () => App.init();
+    </script>
+</body>
+</html>
